@@ -1,0 +1,49 @@
+linters:
+  enable-all: true
+  fast: false
+  disable:
+    # deprecated
+    - scopelint
+    - varcheck
+    - exhaustivestruct
+    - ifshort
+    - structcheck
+    - exhaustruct
+    - deadcode
+    - nosnakecase
+    - maligned
+    - golint
+    - interfacer
+    # disabled
+    - wrapcheck
+    - intrange
+
+linters-settings:
+  depguard:
+    rules:
+      prevent_unmaintained_packages:
+        files:
+          - $all
+          - "!$test"
+        allow:
+          - $gostd
+          - github.com/yuin/goldmark
+          - github.com/yuin/goldmark/ast
+          - github.com/yuin/goldmark/text
+          - github.com/yuin/goldmark/util
+          - github.com/yuin/goldmark/parser
+          - github.com/yuin/goldmark/extension
+          - github.com/yuin/goldmark/extension/ast
+          - github.com/spf13/cobra
+          - github.com/spf13/pflag
+          - mvdan.cc/sh/v3/interp
+          - mvdan.cc/sh/v3/syntax
+          - mvdan.cc/sh/v3/expand
+          - mvdan.cc/sh/v3/text
+          - github.com/google/shlex
+          - github.com/joho/godotenv
+          - github.com/iancoleman/strcase
+          - github.com/szkiba/cdo/internal
+        deny:
+          - pkg: io/ioutil
+            desc: "replaced by io and os packages since Go 1.16: https://tip.golang.org/doc/go1.16#ioutil"

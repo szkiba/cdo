@@ -1,0 +1,7 @@
+cdo - Markdown-based task runner for contributors
+
+cdo allows contributors to perform routine tasks conveniently.
+The markdown code blocks defining the tasks can be specified in the
+CONTRIBUTING.md or README.md files. Tasks are executed using a
+portable, embedded bash-like shell.
+
