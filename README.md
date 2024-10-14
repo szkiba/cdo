@@ -47,6 +47,7 @@ cdo lint --help
 - portable, bash-like embedded shell
 - [BusyBox support](#busybox) for non-built-in commands for portability
 - the tasks can be executed even without the `cdo`
+- Makefile can be generated from the task definitions
 
 ## Install
 
@@ -219,3 +220,12 @@ If there is a [`busybox`](https://www.busybox.net/) command in the search path, 
 Busybox commands have limited functionality, but this functionality is available on all platforms. In order to support contributors using Windows, it is advisable to use the limited functionality of these commands. In this way only busybox needs to be installed on Windows. The author of the task definitions should therefore install busybox even if the Linux operating system is used. This is because busybox commands with limited functionality will be used during the creation/testing of the task definition.
 
 Check [examples/busybox](examples/busybox/CONTRIBUTING.md) for more information on busybox support.
+
+### Makefile
+
+`Makefile` can be generated from task definitions using the `-m/--makefile` flag. The generated `Makefile` can be executed without `cdo`.
+
+If the `make` command is issued without parameters, a short help is displayed about the targets that can be used.
+
+It is important to note that the `Makefile` will not use cdo's embedded shell, but the `bash` shell.
+

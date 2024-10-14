@@ -110,3 +110,11 @@ Requires
 : [lint], [test], [build], [snapshot]
 
 <!-- #endregion ci -->
+
+### makefile - Generate Makefile
+
+Generate Makefile from CONTRIBURIG.md task definitions.
+
+```bash
+cdo --makefile Makefile
+```
