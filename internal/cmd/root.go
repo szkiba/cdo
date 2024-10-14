@@ -7,11 +7,13 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/szkiba/cdo/internal/environ"
+	"github.com/szkiba/cdo/internal/makefile"
 	"github.com/szkiba/cdo/internal/shell"
 	"github.com/szkiba/cdo/internal/task"
 )
@@ -128,6 +130,7 @@ func New(args []string) (*cobra.Command, error) {
 
 	flags.VarP(&flagenv, "env", "e", "Set environment variable(s)")
 	flags.StringVarP(&filename, "file", "f", filename, "Task definitions file")
+	flags.StringP("makefile", "m", "", "Makefile file")
 
 	args = token2flag(args, flags.Lookup("env"), flags.Lookup("file"))
 
@@ -144,6 +147,12 @@ func New(args []string) (*cobra.Command, error) {
 	if fflag := flags.Lookup("file"); fflag.Changed {
 		fflag.DefValue = filename
 		dir = filepath.Dir(filename)
+	}
+
+	if mflag := flags.Lookup("makefile"); mflag.Changed {
+		root.RunE = runMake(filename)
+
+		return root, nil
 	}
 
 	if len(filename) != 0 {
@@ -165,6 +174,57 @@ func runNoFile(cmd *cobra.Command, _ []string) error {
 	fmt.Fprintln(cmd.ErrOrStderr())
 
 	return errNoFile
+}
+
+func runMake(filename string) func(*cobra.Command, []string) error {
+	return func(cmd *cobra.Command, _ []string) error {
+		taskdefs, err := os.ReadFile(filepath.Clean(filename))
+		if err != nil {
+			return err
+		}
+
+		tasks, err := task.Load(taskdefs)
+		if err != nil {
+			return err
+		}
+
+		if len(tasks) == 0 {
+			return fmt.Errorf("%w in %s", errNoTasks, filename)
+		}
+
+		outname, err := cmd.Flags().GetString("makefile")
+		if err != nil {
+			return err
+		}
+
+		all := make([]*task.Task, 0, len(tasks))
+
+		for _, task := range tasks {
+			all = append(all, task)
+		}
+
+		sort.Slice(all, func(i, j int) bool { return all[i].Name < all[j].Name })
+
+		contents := makefile.Generate(appname, relative(filename, outname), all)
+
+		const fileperm = 0o644
+
+		return os.WriteFile(outname, contents, fileperm)
+	}
+}
+
+func relative(srcname string, outname string) string {
+	absname, err := filepath.Abs(outname)
+	if err != nil {
+		return srcname
+	}
+
+	relname, err := filepath.Rel(filepath.Dir(absname), srcname)
+	if err != nil {
+		return srcname
+	}
+
+	return relname
 }
 
 func runRequires(task *task.Task, cmd *cobra.Command) error {
