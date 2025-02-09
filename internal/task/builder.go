@@ -274,7 +274,7 @@ func parseInfo(text []byte) (string, error) {
 		lang = string(all[1])
 	}
 
-	if len(all) <= 2 { //nolint:gomnd
+	if len(all) <= reInfo.NumSubexp() {
 		return lang, nil
 	}
 

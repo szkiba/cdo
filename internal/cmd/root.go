@@ -99,11 +99,41 @@ func newCommand() *cobra.Command {
 	}
 
 	root.SetHelpCommand(&cobra.Command{Hidden: true})
-	root.Flags().BoolP("help", "h", false, "Print usage")
-	root.Flags().BoolP("version", "V", false, "Print version")
 	root.SetUsageTemplate(usageTemplate)
 
 	return root
+}
+
+func preParsePersistentFlags(cmd *cobra.Command, args []string) (bool, *cobra.Command, error) {
+	flags := cmd.PersistentFlags()
+
+	err := flags.Parse(args)
+	if err != nil && !errors.Is(err, pflag.ErrHelp) {
+		return true, nil, err
+	}
+
+	if vflag := flags.Lookup("version"); vflag.Changed {
+		return true, cmd, nil
+	}
+
+	filename, err := flags.GetString("file")
+	if err != nil {
+		return true, nil, err
+	}
+
+	if len(filename) == 0 {
+		cmd.RunE = runNoFile
+
+		return true, cmd, nil
+	}
+
+	if mflag := flags.Lookup("makefile"); mflag.Changed {
+		cmd.RunE = runMake(filename)
+
+		return true, cmd, nil
+	}
+
+	return false, nil, nil
 }
 
 func New(args []string) (*cobra.Command, error) {
@@ -131,6 +161,8 @@ func New(args []string) (*cobra.Command, error) {
 	flags.VarP(&flagenv, "env", "e", "Set environment variable(s)")
 	flags.StringVarP(&filename, "file", "f", filename, "Task definitions file")
 	flags.StringP("makefile", "m", "", "Makefile file")
+	flags.BoolP("version", "V", false, "Print version")
+	flags.BoolP("help", "h", false, "Print usage")
 
 	args = token2flag(args, flags.Lookup("env"), flags.Lookup("file"))
 
@@ -139,9 +171,9 @@ func New(args []string) (*cobra.Command, error) {
 	flags.ParseErrorsWhitelist = pflag.ParseErrorsWhitelist{UnknownFlags: true}
 	flags.SetOutput(io.Discard)
 
-	err = flags.Parse(args)
-	if err != nil && !errors.Is(err, pflag.ErrHelp) {
-		return nil, err
+	done, cmd, err := preParsePersistentFlags(root, args)
+	if done {
+		return cmd, err
 	}
 
 	if fflag := flags.Lookup("file"); fflag.Changed {
@@ -149,18 +181,12 @@ func New(args []string) (*cobra.Command, error) {
 		dir = filepath.Dir(filename)
 	}
 
-	if mflag := flags.Lookup("makefile"); mflag.Changed {
-		root.RunE = runMake(filename)
-
-		return root, nil
-	}
-
-	if len(filename) != 0 {
-		if err := addCommands(root, env, filename, dir); err != nil {
+	if err := addCommands(root, env, filename, dir); err != nil {
+		if errors.Is(err, errNoTasks) {
+			root.RunE = runNoTasks
+		} else {
 			return nil, err
 		}
-	} else {
-		root.RunE = runNoFile
 	}
 
 	return root, nil
@@ -174,6 +200,16 @@ func runNoFile(cmd *cobra.Command, _ []string) error {
 	fmt.Fprintln(cmd.ErrOrStderr())
 
 	return errNoFile
+}
+
+func runNoTasks(cmd *cobra.Command, _ []string) error {
+	if err := cmd.Help(); err != nil {
+		return err
+	}
+
+	fmt.Fprintln(cmd.ErrOrStderr())
+
+	return errNoTasks
 }
 
 func runMake(filename string) func(*cobra.Command, []string) error {
