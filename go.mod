@@ -6,8 +6,8 @@ require (
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/iancoleman/strcase v0.3.0
 	github.com/joho/godotenv v1.5.1
-	github.com/spf13/cobra v1.8.1
-	github.com/spf13/pflag v1.0.5
+	github.com/spf13/cobra v1.9.1
+	github.com/spf13/pflag v1.0.6
 	github.com/yuin/goldmark v1.7.4
 	mvdan.cc/sh/v3 v3.10.0
 )
